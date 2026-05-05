@@ -1,0 +1,11 @@
+*** BookFunnel Changelog ***
+
+2026-05-05 - version 1.0.1
+* Fix - Move inline CSS to enqueued stylesheet
+* Fix - Use wp_upload_dir() for log file path instead of hardcoded WP_CONTENT_DIR
+* Fix - Remove unused build scaffolding files
+* Add - External services documentation in readme
+
+
+2026-04-28 - version 1.0.0
+* Added - Initial release

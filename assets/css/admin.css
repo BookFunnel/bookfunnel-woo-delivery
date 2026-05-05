@@ -1,0 +1,160 @@
+.bf-wc-card {
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	padding: 24px;
+	max-width: 1100px;
+}
+
+.bf-wc-header {
+	display: flex;
+	gap: 16px;
+	align-items: center;
+	margin-bottom: 20px;
+}
+
+.bf-wc-logo {
+	max-width: 220px;
+	height: auto;
+}
+
+.bf-wc-status {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	font-weight: 600;
+}
+
+.bf-wc-status-indicator {
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	display: inline-block;
+}
+
+.bf-wc-status--connected {
+	background: #008a20;
+}
+
+.bf-wc-status--warning {
+	background: #dba617;
+}
+
+.bf-wc-actions {
+	display: flex;
+	gap: 12px;
+	flex-wrap: wrap;
+	margin-top: 20px;
+}
+
+.bf-wc-stack > * + * {
+	margin-top: 16px;
+}
+
+.bf-wc-field-label {
+	display: block;
+	font-weight: 600;
+	margin-bottom: 6px;
+}
+
+.bf-wc-readonly {
+	width: 100%;
+	max-width: 420px;
+}
+
+.bf-wc-note {
+	color: #50575e;
+}
+
+.bf-wc-log-link {
+	margin-top: 16px;
+	display: inline-block;
+}
+
+.bf-wc-log-context {
+	margin: 0;
+}
+
+.bf-wc-log-badge,
+.bf-wc-delivery-badge {
+	display: inline-block;
+	border-radius: 999px;
+	padding: 2px 8px;
+	font-weight: 600;
+	text-transform: capitalize;
+}
+
+.bf-wc-log-badge--info {
+	background: #dff5e3;
+	color: #0a5c1f;
+}
+
+.bf-wc-log-badge--warning {
+	background: #fff4cc;
+	color: #8a6d00;
+}
+
+.bf-wc-log-badge--error {
+	background: #f8d7da;
+	color: #8b1e2d;
+}
+
+.bf-wc-filter-bar {
+	display: flex;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+.bf-wc-filter-link {
+	display: inline-block;
+	padding: 6px 10px;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	text-decoration: none;
+}
+
+.bf-wc-filter-link--active {
+	background: #2271b1;
+	border-color: #2271b1;
+	color: #fff;
+}
+
+.bf-wc-delivery-badge--pending {
+	background: #f0f0f1;
+	color: #1d2327;
+}
+
+.bf-wc-delivery-badge--failed {
+	background: #fff4cc;
+	color: #8a6d00;
+}
+
+.bf-wc-delivery-badge--done {
+	background: #dff5e3;
+	color: #0a5c1f;
+}
+
+.bf-wc-delivery-badge--abandoned {
+	background: #f8d7da;
+	color: #8b1e2d;
+}
+
+.bf-wc-actions-cell {
+	white-space: nowrap;
+}
+
+.bf-wc-info-box {
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	padding: 12px 16px;
+	background: #f6f7f7;
+}
+
+.bf-wc-info-box summary {
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.bf-wc-info-box p {
+	margin: 8px 0 0;
+}
