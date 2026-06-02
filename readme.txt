@@ -43,7 +43,7 @@ BookFunnel matches purchased products to your delivery actions using the product
 **Requirements**
 
 * A BookFunnel account on the Mid List Author plan or above
-* A self-hosted WordPress site (WooCommerce cannot be installed on WordPress.com-hosted sites)
+* A self-hosted WordPress site or a WordPress.com plan that supports plugins
 
 **Getting Started**
 
