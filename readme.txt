@@ -2,7 +2,7 @@
 Contributors: bookfunnel
 Tags: bookfunnel, ebook, audiobook, digital delivery, woocommerce
 Requires at least: 6.2
-Tested up to: 6.9
+Tested up to: 7.0
 Requires PHP: 7.4
 Stable tag: 1.0.1
 WC requires at least: 8.0
