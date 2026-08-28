@@ -103,6 +103,11 @@
 	display: flex;
 	gap: 8px;
 	flex-wrap: wrap;
+	align-items: center;
+}
+
+.bf-wc-log-hidden {
+	display: none;
 }
 
 .bf-wc-filter-link {

@@ -72,9 +72,10 @@ class BF_WC_Auth {
 			return;
 		}
 
-		$token       = isset( $_GET['token'] ) ? sanitize_text_field( wp_unslash( $_GET['token'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- state token verified above via transient
-		$webhook_uid = isset( $_GET['webhook_uid'] ) ? sanitize_text_field( wp_unslash( $_GET['webhook_uid'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- state token verified above via transient
-		$webhook_url = isset( $_GET['webhook_url'] ) ? esc_url_raw( wp_unslash( $_GET['webhook_url'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- state token verified above via transient
+		$token        = isset( $_GET['token'] ) ? sanitize_text_field( wp_unslash( $_GET['token'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- state token verified above via transient
+		$webhook_uid  = isset( $_GET['webhook_uid'] ) ? sanitize_text_field( wp_unslash( $_GET['webhook_uid'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- state token verified above via transient
+		$webhook_url  = isset( $_GET['webhook_url'] ) ? esc_url_raw( wp_unslash( $_GET['webhook_url'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- state token verified above via transient
+		$purchase_uid = isset( $_GET['purchase_uid'] ) ? sanitize_text_field( wp_unslash( $_GET['purchase_uid'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- state token verified above via transient
 
 		if ( '' === $token || '' === $webhook_uid || '' === $webhook_url ) {
 			BF_WC_Logger::warning(
@@ -98,6 +99,7 @@ class BF_WC_Auth {
 		update_option( 'bf_wc_token', $token );
 		update_option( 'bf_wc_webhook_uid', $webhook_uid );
 		update_option( 'bf_wc_webhook_url', $webhook_url );
+		update_option( 'bf_wc_purchase_uid', $purchase_uid );
 		update_option( 'bf_wc_authenticated', true );
 
 		$ping_success = $this->send_ping();
@@ -145,6 +147,15 @@ class BF_WC_Auth {
 	 */
 	public function get_webhook_uid() {
 		return trim( (string) get_option( 'bf_wc_webhook_uid', '' ) );
+	}
+
+	/**
+	 * Get the stored purchase UID.
+	 *
+	 * @return string
+	 */
+	public function get_purchase_uid() {
+		return trim( (string) get_option( 'bf_wc_purchase_uid', '' ) );
 	}
 
 	/**

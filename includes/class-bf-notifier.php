@@ -216,6 +216,15 @@ class BF_WC_Notifier {
 				: gmdate( 'c' );
 		}
 
+		// A forced order.completed event (e.g. restore-access on a refunded order) must
+		// report a status BF's backend accepts, since it validates 'status' independently
+		// of 'event' and has no other way to know we're overriding it.
+		if ( self::EVENT_COMPLETED === $event_type
+			&& ! in_array( $payload['status'], array( 'processing', 'completed', 'digital-completed' ), true )
+		) {
+			$payload['status'] = 'completed';
+		}
+
 		if ( 'order.refunded' === $event_type ) {
 			$payload['refunded_line_items'] = self::get_refunded_line_items( $order );
 		}

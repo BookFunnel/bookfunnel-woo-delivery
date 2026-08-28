@@ -1,11 +1,20 @@
 *** BookFunnel Changelog ***
-
+ 
+2026-08-27 - version 1.1
+* Add - Order-specific delivery link block on the thank-you page and order confirmation email, replacing the generic purchase link
+* Add - Partial refunds no longer revoke reader access by default (new setting to opt back into the old behavior)
+* Fix - Delivery confirmation block now renders higher on the thank-you page
+* Fix - Remove Webhook UID from the Settings page display (no longer needed by any supported integration)
+* Add - Helper text on the Settings page explaining SKUs and delivery actions
+* Add - Admin notice prompting reconnection when a store connected before direct download links were supported
+ 
+ 
 2026-05-05 - version 1.0.1
 * Fix - Move inline CSS to enqueued stylesheet
 * Fix - Use wp_upload_dir() for log file path instead of hardcoded WP_CONTENT_DIR
 * Fix - Remove unused build scaffolding files
 * Add - External services documentation in readme
-
-
+ 
+ 
 2026-04-28 - version 1.0.0
 * Added - Initial release

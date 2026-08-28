@@ -33,6 +33,13 @@ class BF_WC_Admin {
 	const OPTION_EMAIL_INJECTION = 'bf_wc_email_injection';
 
 	/**
+	 * Revoke-on-partial-refund option name.
+	 *
+	 * @var string
+	 */
+	const OPTION_REVOKE_ON_PARTIAL_REFUND = 'bf_wc_revoke_on_partial_refund';
+
+	/**
 	 * Individual order action key.
 	 *
 	 * @var string
@@ -54,11 +61,18 @@ class BF_WC_Admin {
 	const NOTICE_TRANSIENT_PREFIX = 'bf_wc_admin_notice_';
 
 	/**
-	 * Maximum number of log rows to display.
+	 * Maximum number of days of log history to fetch for the Logs tab.
 	 *
 	 * @var int
 	 */
-	const LOG_LIMIT = 100;
+	const LOG_EXPORT_LOOKBACK_DAYS = 30;
+
+	/**
+	 * Maximum number of log rows to fetch for the Logs tab.
+	 *
+	 * @var int
+	 */
+	const LOG_EXPORT_MAX_ROWS = 1000;
 
 	/**
 	 * Maximum number of delivery rows to display.
@@ -91,6 +105,7 @@ class BF_WC_Admin {
 		add_action( 'admin_notices', array( $this, 'render_admin_notices' ) );
 		add_action( 'wp_dashboard_setup', array( $this, 'register_dashboard_widget' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_styles' ) );
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
 
 		add_filter( 'woocommerce_order_actions', array( $this, 'register_order_action' ) );
 		add_action( 'woocommerce_order_action_' . self::ORDER_ACTION, array( $this, 'handle_order_action_resend' ) );
@@ -116,6 +131,25 @@ class BF_WC_Admin {
 			plugin_dir_url( BF_WC_PLUGIN_FILE ) . 'assets/css/admin.css',
 			array(),
 			BF_WC_VERSION
+		);
+	}
+
+	/**
+	 * Enqueue admin scripts for the BookFunnel admin page.
+	 *
+	 * @param string $hook Current admin page hook.
+	 * @return void
+	 */
+	public function enqueue_admin_scripts( $hook ) {
+		if ( 'woocommerce_page_bookfunnel-woocommerce' !== $hook ) {
+			return;
+		}
+		wp_enqueue_script(
+			'bf-wc-admin',
+			plugin_dir_url( BF_WC_PLUGIN_FILE ) . 'assets/js/admin.js',
+			array(),
+			BF_WC_VERSION,
+			true
 		);
 	}
 
@@ -150,6 +184,16 @@ class BF_WC_Admin {
 				'default'           => true,
 			)
 		);
+
+		register_setting(
+			self::SETTINGS_GROUP,
+			self::OPTION_REVOKE_ON_PARTIAL_REFUND,
+			array(
+				'type'              => 'boolean',
+				'sanitize_callback' => array( $this, 'sanitize_revoke_on_partial_refund_setting' ),
+				'default'           => false,
+			)
+		);
 	}
 
 	/**
@@ -165,6 +209,29 @@ class BF_WC_Admin {
 		if ( $current !== $sanitized ) {
 			BF_WC_Logger::info(
 				'BookFunnel email injection setting updated.',
+				array(
+					'old_value' => $current,
+					'new_value' => $sanitized,
+				)
+			);
+		}
+
+		return $sanitized;
+	}
+
+	/**
+	 * Sanitize the revoke-on-partial-refund option.
+	 *
+	 * @param mixed $value Raw submitted value.
+	 * @return int
+	 */
+	public function sanitize_revoke_on_partial_refund_setting( $value ) {
+		$sanitized = filter_var( $value, FILTER_VALIDATE_BOOLEAN ) ? 1 : 0;
+		$current   = filter_var( get_option( self::OPTION_REVOKE_ON_PARTIAL_REFUND, false ), FILTER_VALIDATE_BOOLEAN ) ? 1 : 0;
+
+		if ( $current !== $sanitized ) {
+			BF_WC_Logger::info(
+				'BookFunnel revoke-on-partial-refund setting updated.',
 				array(
 					'old_value' => $current,
 					'new_value' => $sanitized,
@@ -374,12 +441,13 @@ class BF_WC_Admin {
 		$deliveries_tab_url      = $this->get_deliveries_tab_url();
 		$logs_tab_url            = $this->get_admin_page_url( 'logs' );
 		$is_connected            = $this->is_connected();
+		$purchase_uid_missing    = $is_connected && '' === BF_WC_Auth::instance()->get_purchase_uid();
 		$has_ping_warning        = $this->has_ping_warning();
 		$logo_url                = $this->get_logo_url();
 		$connect_url             = $this->get_connect_url();
 		$native_logs_url         = $this->get_native_logs_url();
-		$webhook_uid             = (string) get_option( 'bf_wc_webhook_uid', '' );
 		$email_injection_enabled = filter_var( get_option( self::OPTION_EMAIL_INJECTION, true ), FILTER_VALIDATE_BOOLEAN );
+		$revoke_on_partial_refund_enabled = filter_var( get_option( self::OPTION_REVOKE_ON_PARTIAL_REFUND, false ), FILTER_VALIDATE_BOOLEAN );
 		$log_rows                = array();
 		$delivery_filter         = 'all';
 		$delivery_rows           = array();
@@ -405,6 +473,7 @@ class BF_WC_Admin {
 		delete_option( 'bf_wc_token' );
 		delete_option( 'bf_wc_webhook_uid' );
 		delete_option( 'bf_wc_webhook_url' );
+		delete_option( 'bf_wc_purchase_uid' );
 		delete_option( 'bf_wc_authenticated' );
 		delete_option( 'bf_wc_ping_failed' );
 			delete_option( 'bf_wc_legacy_connection_warning' );
@@ -693,6 +762,9 @@ class BF_WC_Admin {
 	/**
 	 * Fetch recent BookFunnel log rows from WooCommerce log files.
 	 *
+	 * Scans rotated log files (one per day) back to LOG_EXPORT_LOOKBACK_DAYS
+	 * so client-side filtering on the Logs tab has real data to work with.
+	 *
 	 * @return array<int, array<string, string>>
 	 */
 	private function get_log_rows() {
@@ -704,35 +776,42 @@ class BF_WC_Admin {
 
 			rsort( $files, SORT_STRING );
 
-			$latest_file = reset( $files );
+			$cutoff_timestamp = time() - ( self::LOG_EXPORT_LOOKBACK_DAYS * DAY_IN_SECONDS );
+			$rows             = array();
 
-		if ( ! is_string( $latest_file ) || '' === $latest_file || ! is_readable( $latest_file ) ) {
-			return array();
-		}
-
-			$lines = file( $latest_file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES );
-
-		if ( ! is_array( $lines ) || empty( $lines ) ) {
-			return array();
-		}
-
-			$rows = array();
-
-		foreach ( array_reverse( $lines ) as $line ) {
-			if ( ! is_string( $line ) || '' === trim( $line ) ) {
+		foreach ( $files as $file ) {
+			if ( ! is_string( $file ) || ! is_readable( $file ) ) {
 				continue;
 			}
 
-			$entry = $this->parse_log_line( $line );
+			$lines = file( $file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES );
 
-			if ( null === $entry ) {
+			if ( ! is_array( $lines ) || empty( $lines ) ) {
 				continue;
 			}
 
-			$rows[] = $entry;
+			foreach ( array_reverse( $lines ) as $line ) {
+				if ( ! is_string( $line ) || '' === trim( $line ) ) {
+					continue;
+				}
 
-			if ( count( $rows ) >= self::LOG_LIMIT ) {
-				break;
+				$entry = $this->parse_log_line( $line );
+
+				if ( null === $entry ) {
+					continue;
+				}
+
+				$entry_timestamp = strtotime( $entry['timestamp'] );
+
+				if ( false !== $entry_timestamp && $entry_timestamp < $cutoff_timestamp ) {
+					break 2;
+				}
+
+				$rows[] = $entry;
+
+				if ( count( $rows ) >= self::LOG_EXPORT_MAX_ROWS ) {
+					break 2;
+				}
 			}
 		}
 

@@ -15,6 +15,7 @@ $bf_wc_option_names = array(
 	'bf_wc_token',
 	'bf_wc_webhook_uid',
 	'bf_wc_webhook_url',
+	'bf_wc_purchase_uid',
 	'bf_wc_authenticated',
 	'bf_wc_ping_failed',
 	'bf_wc_email_injection',

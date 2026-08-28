@@ -91,11 +91,29 @@ defined( 'ABSPATH' ) || exit;
 						</div>
 					<?php endif; ?>
 
-				<div>
-						<label class="bf-wc-field-label" for="bf-wc-webhook-uid"><?php echo esc_html__( 'Webhook UID', 'bookfunnel' ); ?></label>
-					<input id="bf-wc-webhook-uid" class="regular-text code bf-wc-readonly" type="text" value="<?php echo esc_attr( $webhook_uid ); ?>" readonly="readonly" />
-				</div>
+					<?php if ( $purchase_uid_missing ) : ?>
+						<div class="notice notice-warning inline">
+							<p><strong><?php echo esc_html__( 'Your delivery link isn\'t fully set up.', 'bookfunnel' ); ?></strong>
+							<?php
+							echo wp_kses(
+								sprintf(
+									/* translators: %s: BookFunnel reconnect URL. */
+									__( 'This connection was made before we added direct download links. <a href="%s">Reconnect to BookFunnel</a> to enable a direct download link on your thank-you page and order emails, instead of the default "check your email" message.', 'bookfunnel' ),
+									esc_url( $connect_url )
+								),
+								array(
+									'a' => array(
+										'href' => true,
+									),
+								)
+							);
+							?>
+							</p>
+						</div>
+					<?php endif; ?>
 
+						<h2><?php echo esc_html__( 'Delivery actions', 'bookfunnel' ); ?></h2>
+						<p><?php echo esc_html__( 'Each product\'s WooCommerce SKU must exactly match the corresponding BookFunnel delivery action item ID.', 'bookfunnel' ); ?></p>
 						<p><a href="<?php echo esc_url( 'https://dashboard.bookfunnel.com/sales' ); ?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html__( 'Manage delivery settings in BookFunnel', 'bookfunnel' ); ?></a></p>
 
 				<form method="post" action="<?php echo esc_url( admin_url( 'options.php' ) ); ?>" class="bf-wc-stack">
@@ -105,6 +123,14 @@ defined( 'ABSPATH' ) || exit;
 						<input id="bf-wc-email-injection" type="checkbox" name="bf_wc_email_injection" value="1" <?php checked( $email_injection_enabled ); ?> />
 							<?php echo esc_html__( 'Include BookFunnel delivery notification in order confirmation emails', 'bookfunnel' ); ?>
 					</label>
+					<div>
+						<input type="hidden" name="bf_wc_revoke_on_partial_refund" value="0" />
+						<label for="bf-wc-revoke-partial-refund">
+							<input id="bf-wc-revoke-partial-refund" type="checkbox" name="bf_wc_revoke_on_partial_refund" value="1" <?php checked( $revoke_on_partial_refund_enabled ); ?> />
+								<?php echo esc_html__( 'Revoke BookFunnel access when an order is partially refunded', 'bookfunnel' ); ?>
+						</label>
+						<p class="bf-wc-note"><?php echo esc_html__( 'Off by default — courtesy discounts won\'t revoke access. Check to revoke on any refund.', 'bookfunnel' ); ?></p>
+					</div>
 						<?php submit_button( __( 'Save Settings', 'bookfunnel' ) ); ?>
 				</form>
 

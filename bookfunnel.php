@@ -2,7 +2,7 @@
 /**
  * Plugin Name: BookFunnel
  * Description: Sell ebooks and audiobooks on your WooCommerce store and let BookFunnel handle the delivery.
- * Version: 1.0.1
+ * Version: 1.1
  * Author: BookFunnel
  * Author URI: https://bookfunnel.com
  * Text Domain: bookfunnel
@@ -22,7 +22,7 @@
 defined( 'ABSPATH' ) || exit;
 
 // Plugin constants.
-define( 'BF_WC_VERSION', '0.1.0' );
+define( 'BF_WC_VERSION', '1.1' );
 define( 'BF_WC_PLUGIN_FILE', __FILE__ );
 define( 'BF_WC_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'BF_WC_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -187,6 +187,7 @@ function bookfunnel_woocommerce_init() {
 	require_once BF_WC_PLUGIN_DIR . 'includes/class-bf-logger.php';
 	require_once BF_WC_PLUGIN_DIR . 'includes/class-bf-auth.php';
 	require_once BF_WC_PLUGIN_DIR . 'includes/class-bf-notifier.php';
+	require_once BF_WC_PLUGIN_DIR . 'includes/class-bf-delivery-link.php';
 	require_once BF_WC_PLUGIN_DIR . 'includes/class-bf-thankyou.php';
 	require_once BF_WC_PLUGIN_DIR . 'includes/class-bf-cron.php';
 	require_once BF_WC_PLUGIN_DIR . 'includes/class-bf-order-events.php';

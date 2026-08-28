@@ -16,7 +16,7 @@ class BF_WC_ThankYou {
 	 * Constructor.
 	 */
 	public function __construct() {
-		add_action( 'woocommerce_thankyou', array( $this, 'render_thankyou_html' ), 10, 1 );
+		add_action( 'woocommerce_before_thankyou', array( $this, 'render_thankyou_html' ), 10, 1 );
 		add_action( 'woocommerce_email_order_details', array( $this, 'render_email_html' ), 10, 4 );
 	}
 
@@ -67,42 +67,58 @@ class BF_WC_ThankYou {
 	 * @return void
 	 */
 	private function output_delivery_html( $order, $location ) {
-		$order_id        = (int) $order->get_id();
-		$fulfilled_count = 0;
+		$order_id       = (int) $order->get_id();
+		$fulfilled_skus = array();
 
 		foreach ( $order->get_items() as $item ) {
-			if ( 'yes' === $item->get_meta( '_bf_fulfilled' ) ) {
-				++$fulfilled_count;
+			if ( 'yes' !== $item->get_meta( '_bf_fulfilled' ) ) {
+				continue;
+			}
+
+			$product = $item->get_product();
+			$sku     = $product ? (string) $product->get_sku() : '';
+
+			if ( '' !== $sku ) {
+				$fulfilled_skus[] = $sku;
 			}
 		}
 
-		if ( 0 === $fulfilled_count ) {
+		if ( empty( $fulfilled_skus ) ) {
 			return;
 		}
 
-		$email = $order->get_billing_email();
-		$book  = 1 === $fulfilled_count ? 'book' : 'books';
+		$purchase_uid = BF_WC_Auth::instance()->get_purchase_uid();
 
-		$html = sprintf(
-			'<p>We\'ve sent a link to <strong>%s</strong> with instructions on how to download your %s. Please check your inbox to get started.</p>',
-			esc_html( $email ),
-			esc_html( $book )
-		);
+		if ( '' === $purchase_uid ) {
+			$email = $order->get_billing_email();
+			$book  = 1 === count( $fulfilled_skus ) ? 'book' : 'books';
 
-		echo '<div class="bf-wc-delivery">' . wp_kses(
-			$html,
-			array(
+			$html = sprintf(
+				'<p>We\'ve sent a link to <strong>%s</strong> with instructions on how to download your %s. Please check your inbox to get started.</p>',
+				esc_html( $email ),
+				esc_html( $book )
+			);
+
+			$allowed_html = array(
 				'p'      => array(),
 				'strong' => array(),
-			)
-		) . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- HTML is sanitized with wp_kses().
+			);
+
+			echo '<div class="bf-wc-delivery">' . wp_kses( $html, $allowed_html ) . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- HTML is sanitized with wp_kses().
+		} else {
+			$delivery = BF_WC_Delivery_Link::get_delivery_data( $order, $purchase_uid, $fulfilled_skus );
+
+			echo '<div class="bf-wc-delivery">';
+			include BF_WC_PLUGIN_DIR . 'templates/delivery-block.php';
+			echo '</div>';
+		}
 
 		BF_WC_Logger::info(
 			'BookFunnel delivery message injected successfully.',
 			array(
 				'order_id'        => $order_id,
 				'location'        => $location,
-				'fulfilled_count' => $fulfilled_count,
+				'fulfilled_count' => count( $fulfilled_skus ),
 			)
 		);
 	}
