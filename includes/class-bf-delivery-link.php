@@ -76,7 +76,7 @@ class BF_WC_Delivery_Link {
 			'https://purchase.bookfunnel.com/' . rawurlencode( $purchase_uid ) . '/woocommerce'
 		);
 
-		$response = wp_remote_get( $request_url, array( 'timeout' => 3 ) );
+		$response = wp_safe_remote_get( $request_url, array( 'timeout' => 3 ) );
 		$body     = self::parse_success_body( $response );
 
 		if ( null === $body ) {

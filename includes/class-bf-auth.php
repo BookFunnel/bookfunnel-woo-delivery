@@ -67,7 +67,7 @@ class BF_WC_Auth {
 		$incoming_state = isset( $_GET['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- state token verified against stored transient immediately below
 		delete_transient( 'bf_wc_auth_state_' . get_current_user_id() );
 
-		if ( empty( $stored_state ) || empty( $incoming_state ) || $stored_state !== $incoming_state ) {
+		if ( empty( $stored_state ) || empty( $incoming_state ) || ! hash_equals( (string) $stored_state, $incoming_state ) ) {
 			BF_WC_Logger::warning( 'BookFunnel authentication callback rejected because the nonce was invalid.' );
 			return;
 		}
@@ -77,14 +77,27 @@ class BF_WC_Auth {
 		$webhook_url  = isset( $_GET['webhook_url'] ) ? esc_url_raw( wp_unslash( $_GET['webhook_url'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- state token verified above via transient
 		$purchase_uid = isset( $_GET['purchase_uid'] ) ? sanitize_text_field( wp_unslash( $_GET['purchase_uid'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- state token verified above via transient
 
-		if ( '' === $token || '' === $webhook_uid || '' === $webhook_url ) {
+		if ( ! self::is_valid_webhook_url( $webhook_url )
+			|| ! preg_match( '/^[a-z0-9]{10}$/', $webhook_uid )
+			|| ! preg_match( '/^[a-z0-9]{10}$/', $purchase_uid )
+			|| ! preg_match( '/^[A-Za-z0-9]{16,128}$/', $token )
+		) {
 			BF_WC_Logger::warning(
-				'BookFunnel authentication callback rejected because one or more required values were missing or invalid.',
+				'BookFunnel authentication callback rejected because one or more values were missing or invalid.',
 				array(
-					'has_token'       => '' !== $token,
-					'has_webhook_uid' => '' !== $webhook_uid,
-					'has_webhook_url' => '' !== $webhook_url,
+					'webhook_url'     => $webhook_url,
+					'webhook_uid_ok'  => (bool) preg_match( '/^[a-z0-9]{10}$/', $webhook_uid ),
+					'purchase_uid_ok' => (bool) preg_match( '/^[a-z0-9]{10}$/', $purchase_uid ),
+					'token_ok'        => (bool) preg_match( '/^[A-Za-z0-9]{16,128}$/', $token ),
 				)
+			);
+			set_transient(
+				BF_WC_Admin::NOTICE_TRANSIENT_PREFIX . get_current_user_id(),
+				array(
+					'type'    => 'error',
+					'message' => __( 'The BookFunnel connection response was invalid and was ignored. Please try connecting again.', 'bookfunnel' ),
+				),
+				MINUTE_IN_SECONDS
 			);
 			return;
 		}
@@ -120,6 +133,24 @@ class BF_WC_Auth {
 			)
 		);
 		exit;
+	}
+
+	/**
+	 * Determine whether a URL is an https BookFunnel (bookfunnel.com or subdomain) URL.
+	 *
+	 * @param string $url URL to check.
+	 * @return bool
+	 */
+	public static function is_valid_webhook_url( $url ) {
+		$parts = wp_parse_url( (string) $url );
+
+		if ( ! is_array( $parts ) || empty( $parts['scheme'] ) || empty( $parts['host'] ) || isset( $parts['user'] ) || isset( $parts['pass'] ) ) {
+			return false;
+		}
+
+		$host = strtolower( $parts['host'] );
+
+		return 'https' === strtolower( $parts['scheme'] ) && ( 'bookfunnel.com' === $host || '.bookfunnel.com' === substr( $host, -15 ) );
 	}
 
 	/**
@@ -195,7 +226,7 @@ class BF_WC_Auth {
 			return false;
 		}
 
-		$response = wp_remote_post(
+		$response = wp_safe_remote_post(
 			$webhook_url,
 			array(
 				'body'        => $body,

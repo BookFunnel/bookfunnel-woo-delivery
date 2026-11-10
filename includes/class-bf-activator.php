@@ -17,7 +17,35 @@ class BF_WC_Activator {
 	 * @return void
 	 */
 	public static function activate() {
+		self::install();
+	}
+
+	/**
+	 * Run the install routine when the stored database version is missing or outdated.
+	 *
+	 * @return void
+	 */
+	public static function maybe_install() {
+		if ( get_option( 'bf_wc_db_version' ) === BF_WC_DB_VERSION ) {
+			return;
+		}
+
+		if ( get_transient( 'bf_wc_db_install_retry' ) ) {
+			return;
+		}
+
+		self::install();
+	}
+
+	/**
+	 * Create or update the notifications table and record the database version.
+	 *
+	 * @return void
+	 */
+	private static function install() {
 		global $wpdb;
+
+		require_once BF_WC_PLUGIN_DIR . 'includes/class-bf-logger.php';
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
@@ -40,5 +68,23 @@ class BF_WC_Activator {
 		) {$charset_collate};";
 
 		dbDelta( $sql );
+
+		$table_exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) === $table_name;
+
+		if ( $table_exists ) {
+			update_option( 'bf_wc_db_version', BF_WC_DB_VERSION );
+			delete_transient( 'bf_wc_db_install_retry' );
+			return;
+		}
+
+		BF_WC_Logger::error(
+			'BookFunnel notification table could not be created.',
+			array(
+				'table'    => $table_name,
+				'db_error' => $wpdb->last_error,
+			)
+		);
+
+		set_transient( 'bf_wc_db_install_retry', 1, HOUR_IN_SECONDS );
 	}
 }

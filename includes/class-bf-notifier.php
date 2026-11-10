@@ -104,6 +104,8 @@ class BF_WC_Notifier {
 		}
 
 		if ( ! $notification_id ) {
+			global $wpdb;
+
 			self::maybe_log(
 				$args,
 				'error',
@@ -113,6 +115,7 @@ class BF_WC_Notifier {
 					'event_type'    => $event_type,
 					'response_code' => 0,
 					'response_body' => 'Notification insert failed.',
+					'db_error'      => $wpdb->last_error,
 				)
 			);
 
@@ -124,6 +127,11 @@ class BF_WC_Notifier {
 		}
 
 		$base_url = trim( (string) get_option( 'bf_wc_webhook_url', '' ) );
+		if ( '' !== $base_url && ! BF_WC_Auth::is_valid_webhook_url( $base_url ) ) {
+			self::maybe_log( $args, 'warning', 'BookFunnel webhook URL rejected because it is not an https bookfunnel.com URL.', array( 'webhook_url' => $base_url ) );
+			$base_url = '';
+		}
+
 		if ( '' === $base_url ) {
 			$failure_result = self::handle_send_failure( $notification_id, 'Webhook URL not configured.' );
 
@@ -175,7 +183,7 @@ class BF_WC_Notifier {
 			);
 		}
 
-		$response = wp_remote_post(
+		$response = wp_safe_remote_post(
 			$webhook_url,
 			array(
 				'body'        => $body,
@@ -391,7 +399,19 @@ class BF_WC_Notifier {
 			$event_type
 		);
 
-			return (int) $wpdb->get_var( $query ) > 0; // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- query is built with $wpdb->prepare() above
+			$count = $wpdb->get_var( $query ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- query is built with $wpdb->prepare() above
+
+		if ( null === $count ) {
+			self::log_db_error(
+				'BookFunnel could not check for an existing notification record.',
+				array(
+					'order_id'   => $order_id,
+					'event_type' => $event_type,
+				)
+			);
+		}
+
+		return (int) $count > 0;
 	}
 
 	/**
@@ -490,7 +510,11 @@ class BF_WC_Notifier {
 			$notification_id
 		);
 
-			$wpdb->query( $query ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- query is built with $wpdb->prepare() above
+			$result = $wpdb->query( $query ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- query is built with $wpdb->prepare() above
+
+		if ( false === $result ) {
+			self::log_db_error( 'BookFunnel could not mark the notification record as done.', array( 'notification_id' => $notification_id ) );
+		}
 	}
 
 	/**
@@ -527,7 +551,12 @@ class BF_WC_Notifier {
 				$notification_id
 			);
 
-				$wpdb->query( $query ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- query is built with $wpdb->prepare() above
+				$result = $wpdb->query( $query ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- query is built with $wpdb->prepare() above
+
+			if ( false === $result ) {
+				self::log_db_error( 'BookFunnel could not mark the notification record as abandoned.', array( 'notification_id' => $notification_id ) );
+			}
+
 			BF_WC_Cron::send_abandonment_email( $notification );
 
 			return array(
@@ -548,7 +577,11 @@ class BF_WC_Notifier {
 			$notification_id
 		);
 
-			$wpdb->query( $query ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- query is built with $wpdb->prepare() above
+			$result = $wpdb->query( $query ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- query is built with $wpdb->prepare() above
+
+		if ( false === $result ) {
+			self::log_db_error( 'BookFunnel could not schedule the notification record for retry.', array( 'notification_id' => $notification_id ) );
+		}
 
 		if ( 4 === $attempt_number ) {
 			BF_WC_Cron::send_warning_email( $notification );
@@ -577,10 +610,29 @@ class BF_WC_Notifier {
 			$result = $wpdb->get_row( $query, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- query is built with $wpdb->prepare() above
 
 		if ( ! is_array( $result ) ) {
+			if ( '' !== $wpdb->last_error ) {
+				self::log_db_error( 'BookFunnel could not load the notification record.', array( 'notification_id' => $notification_id ) );
+			}
+
 			return array();
 		}
 
 		return $result;
+	}
+
+	/**
+	 * Log a failed notification table query with the database error.
+	 *
+	 * @param string $message Log message.
+	 * @param array  $context Log context.
+	 * @return void
+	 */
+	private static function log_db_error( $message, array $context ) {
+		global $wpdb;
+
+		$context['db_error'] = $wpdb->last_error;
+
+		BF_WC_Logger::error( $message, $context );
 	}
 
 	/**

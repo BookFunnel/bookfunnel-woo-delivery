@@ -154,6 +154,15 @@ class BF_WC_Cron {
 
 			$results = $wpdb->get_results( $query, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- query is built with $wpdb->prepare() above
 
+		if ( '' !== $wpdb->last_error ) {
+			BF_WC_Logger::error(
+				'BookFunnel could not load due notifications from the retry queue.',
+				array(
+					'db_error' => $wpdb->last_error,
+				)
+			);
+		}
+
 		if ( ! is_array( $results ) ) {
 			return array();
 		}

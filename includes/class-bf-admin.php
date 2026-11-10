@@ -102,6 +102,7 @@ class BF_WC_Admin {
 		add_action( 'admin_menu', array( $this, 'register_page' ) );
 		add_action( 'admin_init', array( $this, 'register_settings' ) );
 		add_action( 'admin_init', array( $this, 'handle_page_actions' ) );
+		add_filter( 'option_page_capability_' . self::SETTINGS_GROUP, array( $this, 'settings_capability' ) );
 		add_action( 'admin_notices', array( $this, 'render_admin_notices' ) );
 		add_action( 'wp_dashboard_setup', array( $this, 'register_dashboard_widget' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_styles' ) );
@@ -197,6 +198,15 @@ class BF_WC_Admin {
 	}
 
 	/**
+	 * Capability required to save the Settings tab.
+	 *
+	 * @return string
+	 */
+	public function settings_capability() {
+		return 'manage_woocommerce';
+	}
+
+	/**
 	 * Sanitize the email injection option.
 	 *
 	 * @param mixed $value Raw submitted value.
@@ -255,6 +265,11 @@ class BF_WC_Admin {
 		if ( isset( $_GET['bf_wc_dismiss_delivery_notice'] ) ) {
 			check_admin_referer( 'bf_wc_dismiss_delivery_notice' );
 			$this->dismiss_delivery_health_notice();
+		}
+
+		if ( isset( $_GET['bf_wc_connect'] ) ) {
+			check_admin_referer( 'bf_wc_connect' );
+			$this->redirect_to_connect();
 		}
 
 		$action = isset( $_POST['bf_wc_admin_action'] ) ? sanitize_key( wp_unslash( $_POST['bf_wc_admin_action'] ) ) : '';
@@ -633,7 +648,7 @@ class BF_WC_Admin {
 		}
 
 		$query       = "SELECT status, COUNT(*) AS total FROM {$wpdb->prefix}bf_wc_notifications GROUP BY status";
-			$results = $wpdb->get_results( $query, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- query is built with $wpdb->prepare() above
+			$results = $wpdb->get_results( $query, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- constant query; only $wpdb->prefix is interpolated
 
 		if ( is_array( $results ) ) {
 			foreach ( $results as $row ) {
@@ -714,10 +729,22 @@ class BF_WC_Admin {
 	 * @return string
 	 */
 	private function get_connect_url() {
+		return wp_nonce_url(
+			add_query_arg( 'bf_wc_connect', '1', $this->get_admin_page_url( 'settings' ) ),
+			'bf_wc_connect'
+		);
+	}
+
+	/**
+	 * Generate the connect state and send the user to BookFunnel.
+	 *
+	 * @return void
+	 */
+	private function redirect_to_connect() {
 		$state = wp_generate_password( 32, false );
 		set_transient( 'bf_wc_auth_state_' . get_current_user_id(), $state, 5 * MINUTE_IN_SECONDS );
 
-		return add_query_arg(
+		$url = add_query_arg(
 			array(
 				'store_url'    => site_url(),
 				'redirect_uri' => admin_url( 'admin.php' ),
@@ -725,6 +752,9 @@ class BF_WC_Admin {
 			),
 			'https://dashboard.bookfunnel.com/integrate/woocommerce'
 		);
+
+		wp_redirect( $url ); // phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect -- fixed BookFunnel dashboard host
+		exit;
 	}
 
 	/**
@@ -1108,6 +1138,7 @@ class BF_WC_Admin {
 	 */
 	private function determine_event_type_from_order( $order ) {
 		switch ( (string) $order->get_status() ) {
+			case 'processing':
 			case 'completed':
 				return BF_WC_Notifier::EVENT_COMPLETED;
 

@@ -1,5 +1,11 @@
 *** BookFunnel Changelog ***
  
+2026-11-10 - version 1.1.1
+* Add - Automatic setup check keeps the delivery queue ready, regardless of plugin activation order
+* Add - "Resend to BookFunnel" now supports orders in Processing status
+* Add - Shop managers can now manage BookFunnel settings
+ 
+ 
 2026-08-27 - version 1.1
 * Add - Order-specific delivery link block on the thank-you page and order confirmation email, replacing the generic purchase link
 * Add - Partial refunds no longer revoke reader access by default (new setting to opt back into the old behavior)

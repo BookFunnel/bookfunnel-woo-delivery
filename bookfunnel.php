@@ -2,7 +2,7 @@
 /**
  * Plugin Name: BookFunnel
  * Description: Sell ebooks and audiobooks on your WooCommerce store and let BookFunnel handle the delivery.
- * Version: 1.1
+ * Version: 1.1.1
  * Author: BookFunnel
  * Author URI: https://bookfunnel.com
  * Text Domain: bookfunnel
@@ -11,7 +11,7 @@
  * Requires at least: 6.2
  * Requires PHP: 7.4
  * WC requires at least: 8.0
- * WC tested up to: 10.7.0
+ * WC tested up to: 11.2.2
  *
  * License: GPLv2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -22,7 +22,8 @@
 defined( 'ABSPATH' ) || exit;
 
 // Plugin constants.
-define( 'BF_WC_VERSION', '1.1' );
+define( 'BF_WC_VERSION', '1.1.1' );
+define( 'BF_WC_DB_VERSION', '1' );
 define( 'BF_WC_PLUGIN_FILE', __FILE__ );
 define( 'BF_WC_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'BF_WC_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -87,15 +88,17 @@ register_deactivation_hook( __FILE__, 'bookfunnel_woocommerce_deactivate' );
  * @since 0.1.0
  */
 function bookfunnel_woocommerce_activate() {
+	require_once BF_WC_PLUGIN_DIR . 'includes/class-bf-activator.php';
+
+	BF_WC_Activator::activate();
+
 	if ( ! class_exists( 'WooCommerce' ) ) {
 		add_action( 'admin_notices', 'bookfunnel_woocommerce_missing_wc_notice' );
 		return;
 	}
 
-	require_once BF_WC_PLUGIN_DIR . 'includes/class-bf-activator.php';
 	require_once BF_WC_PLUGIN_DIR . 'includes/class-bf-cron.php';
 
-	BF_WC_Activator::activate();
 	BF_WC_Cron::activate();
 }
 
@@ -178,12 +181,15 @@ add_action( 'plugins_loaded', 'bookfunnel_woocommerce_init', 10 );
  * @since 0.1.0
  */
 function bookfunnel_woocommerce_init() {
+	require_once BF_WC_PLUGIN_DIR . 'includes/class-bf-activator.php';
+
+	BF_WC_Activator::maybe_install();
+
 	if ( ! class_exists( 'WooCommerce' ) ) {
 		add_action( 'admin_notices', 'bookfunnel_woocommerce_missing_wc_notice' );
 		return;
 	}
 
-	require_once BF_WC_PLUGIN_DIR . 'includes/class-bf-activator.php';
 	require_once BF_WC_PLUGIN_DIR . 'includes/class-bf-logger.php';
 	require_once BF_WC_PLUGIN_DIR . 'includes/class-bf-auth.php';
 	require_once BF_WC_PLUGIN_DIR . 'includes/class-bf-notifier.php';
@@ -195,3 +201,5 @@ function bookfunnel_woocommerce_init() {
 
 	BookfunnelWoocommerce::instance();
 }
+
+// phpcs:enable WordPress.Files.FileName

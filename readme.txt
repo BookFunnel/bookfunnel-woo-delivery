@@ -4,9 +4,9 @@ Tags: bookfunnel, ebook, audiobook, digital delivery, woocommerce
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1
+Stable tag: 1.1.1
 WC requires at least: 8.0
-WC tested up to: 11.0.1
+WC tested up to: 11.2.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
  
@@ -133,6 +133,12 @@ This service is provided by BookFunnel: [Terms of Service](https://bookfunnel.co
 5. The Logs tab — filter, copy, and email support logs directly to BookFunnel.
  
 == Changelog ==
+ 
+2026-11-10 - version 1.1.1
+* Add - Automatic setup check keeps the delivery queue ready, regardless of plugin activation order
+* Add - "Resend to BookFunnel" now supports orders in Processing status
+* Add - Shop managers can now manage BookFunnel settings
+ 
  
 2026-08-27 - version 1.1
 * Add - Order-specific delivery link block on the thank-you page and order confirmation email, replacing the generic purchase link
